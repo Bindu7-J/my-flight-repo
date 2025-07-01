@@ -73,11 +73,23 @@ const Profile = () => {
         );
 
         toast.success("Profile updated successfully");
-        console.log("Profile updated successfully:", response.data);
         setUserData(response.data.user);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
+    }
+  };
+
+  // Helper to refetch tickets after cancellation
+  const refetchTickets = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get(BACKENDURL + "/api/v1/auth/getUser", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTickets(response.data.tickets);
+    } catch (error) {
+      console.error("Error refetching tickets:", error);
     }
   };
 
@@ -140,23 +152,56 @@ const Profile = () => {
             <thead>
               <tr>
                 <th>Ticket ID</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {tickets.map((ticket) => (
-                <tr key={ticket._id}>
-                  <td className="text-center">{ticket.uid}</td>
-                  <td className="text-center">
-                    <Link
-                      to={`/ticket/${ticket.uid}`}
-                      className="text-blue-500 underline"
-                    >
-                      Go to Ticket
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {tickets.map((ticket) =>
+                ticket.tickets.map((booking) => (
+                  <tr key={booking._id}>
+                    <td className="text-center">{ticket.uid}</td>
+                    <td className="text-center">{booking.status || "active"}</td>
+                    <td className="text-center">
+                      <Link
+                        to={`/ticket/${ticket.uid}`}
+                        className="text-blue-500 underline"
+                      >
+                        Go to Ticket
+                      </Link>
+                      {(!booking.status || booking.status === "active") && (
+                        <button
+                          className="ml-2 bg-red-500 text-white px-3 py-1 rounded"
+                          onClick={async () => {
+                            if (
+                              window.confirm(
+                                "Are you sure you want to cancel this booking?"
+                              )
+                            ) {
+                              try {
+                                const token = localStorage.getItem("token");
+                                await axios.patch(
+                                  `${BACKENDURL}/api/v1/booking/${booking._id}/cancel`,
+                                  {},
+                                  {
+                                    headers: { Authorization: `Bearer ${token}` },
+                                  }
+                                );
+                                toast.success("Your booking has been cancelled.");
+                                await refetchTickets();
+                              } catch (err) {
+                                toast.error("Cancellation failed.");
+                              }
+                            }
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         ) : (

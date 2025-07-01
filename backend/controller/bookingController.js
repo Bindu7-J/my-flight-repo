@@ -6,6 +6,31 @@ import Stripe from "stripe";
 import Airline from "../models/airlineSchema.js";
 import Ticket from "../models/ticketSchema.js";
 
+// Cancel a booking by ID (soft delete)
+export const cancelBooking = async (req, res) => {
+  try {
+    const bookingId = req.params.bookingId;
+    const userId = req.userId; // Set by authenticate middleware
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+    // Only owner or admin can cancel
+    if (booking.user.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Not authorized to cancel this booking" });
+    }
+    if (booking.status === 'cancelled') {
+      return res.status(200).json({ success: true, message: "Booking already cancelled" });
+    }
+    booking.status = 'cancelled';
+    await booking.save();
+    return res.status(200).json({ success: true, message: "Booking cancelled" });
+  } catch (err) {
+    console.error("Cancel booking error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 export const getCheckoutSession = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
