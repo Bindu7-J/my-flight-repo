@@ -1,6 +1,4 @@
-import mongoose from "mongoose";
-const Schema = mongoose.Schema;
-
+// ...existing imports
 const bookingSchema = new Schema({
   flight: {
     type: Schema.Types.ObjectId,
@@ -48,6 +46,12 @@ const bookingSchema = new Schema({
     type: String,
     required: true,
   },
+  // Booking status: 'active' or 'cancelled'
+  status: {
+    type: String,
+    enum: ['active', 'cancelled'],
+    default: 'active',
+    required: true,
+  },
 });
-
-export default mongoose.model("Booking", bookingSchema);
+// ...rest of file
