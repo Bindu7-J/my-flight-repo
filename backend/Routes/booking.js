@@ -1,9 +1,9 @@
-import express from "express";
-import { authenticate, restrict } from "../auth/verifyToken.js";
+// ...existing imports
+import { getCheckoutSession, cancelBooking } from "../controller/bookingController.js";
+// ...existing middleware imports
 
-import { getCheckoutSession } from "../controller/bookingController.js";
-
-const router = express.Router();
-
+// ...existing routes
 router.post("/checkout-session/:flightId", authenticate, getCheckoutSession);
-export default router;
+// Add booking cancellation route
+router.patch("/:id/cancel", authenticate, cancelBooking);
+// ...rest of file
