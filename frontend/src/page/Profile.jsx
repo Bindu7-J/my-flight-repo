@@ -15,11 +15,12 @@ const Profile = () => {
   const [tickets, setTickets] = useState([]);
   const [userName, setUserName] = useState("");
   const [profilePic, setProfilePic] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [cancelMsg, setCancelMsg] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     axios
       .get(BACKENDURL + "/api/v1/auth/getUser", {
         headers: { Authorization: `Bearer ${token}` },
@@ -28,6 +29,7 @@ const Profile = () => {
         setUserData(response.data.user);
         setTickets(response.data.tickets);
         setUserName(response.data.user.name);
+        setBookings(response.data.bookings || []);
       })
       .catch((error) => {
         console.error("Error fetching user data:", error);
@@ -58,12 +60,10 @@ const Profile = () => {
         navigate("/login");
       } else {
         let updatedData = { name: userName };
-
         if (profilePic) {
           const imageData = await uploadImageToCloudinary(profilePic);
           updatedData.profilePic = imageData.secure_url;
         }
-
         const response = await axios.put(
           BACKENDURL + "/api/v1/auth/updateUser",
           updatedData,
@@ -71,13 +71,33 @@ const Profile = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
         toast.success("Profile updated successfully");
-        console.log("Profile updated successfully:", response.data);
         setUserData(response.data.user);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
+    }
+  };
+
+  // DMA-45: Cancel booking logic
+  const handleCancelBooking = async (bookingId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axios.patch(
+        `${BACKENDURL}/api/v1/booking/${bookingId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCancelMsg("Your booking has been cancelled.");
+      setBookings(
+        bookings.map((b) =>
+          b._id === bookingId ? { ...b, status: "cancelled" } : b
+        )
+      );
+    } catch (err) {
+      setCancelMsg(
+        err.response?.data?.message || "Failed to cancel booking."
+      );
     }
   };
 
@@ -104,7 +124,6 @@ const Profile = () => {
             <img src={userData.profilePic} alt="" />
           )}
         </div>
-
         <div>
           <div className="flex gap-2 justify-start items-center">
             <p>User Name: </p>
@@ -117,7 +136,6 @@ const Profile = () => {
           </div>
           <p className="mt-2">User Email: {userData.email}</p>
         </div>
-
         <div className="flex gap-2 justify-start items-center">
           <button
             className="bg-blue-300 text-black mt-3 px-8 py-3 rounded-xl hover:bg-blue-400 transition duration-200"
@@ -135,32 +153,42 @@ const Profile = () => {
             Logout
           </button>
         </div>
-        {tickets.length > 0 ? (
+        {/* DMA-45: Bookings Table with Cancel Button */}
+        {bookings.length > 0 ? (
           <table className="table-auto w-full mt-5">
             <thead>
               <tr>
-                <th>Ticket ID</th>
+                <th>Booking ID</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {tickets.map((ticket) => (
-                <tr key={ticket._id}>
-                  <td className="text-center">{ticket.uid}</td>
+              {bookings.map((booking) => (
+                <tr key={booking._id}>
+                  <td className="text-center">{booking._id}</td>
+                  <td className="text-center">{booking.status}</td>
                   <td className="text-center">
-                    <Link
-                      to={`/ticket/${ticket.uid}`}
-                      className="text-blue-500 underline"
-                    >
-                      Go to Ticket
-                    </Link>
+                    {booking.status === "active" ? (
+                      <button
+                        className="bg-red-500 text-white px-4 py-2 rounded"
+                        onClick={() => handleCancelBooking(booking._id)}
+                      >
+                        Cancel
+                      </button>
+                    ) : (
+                      <span className="text-gray-500">Cancelled</span>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="mt-5">No tickets found</p>
+          <p className="mt-5">No bookings found</p>
+        )}
+        {cancelMsg && (
+          <div className="mt-4 text-green-600 font-bold">{cancelMsg}</div>
         )}
       </div>
     </div>
