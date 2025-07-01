@@ -100,6 +100,40 @@ export const getCheckoutSession = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Cancel a booking by ID if it is active and belongs to the user.
+ * PATCH /api/v1/booking/cancel/:bookingId
+ */
+export const cancelBooking = async (req, res) => {
+  try {
+    const bookingId = req.params.bookingId;
+    const userId = req.userId;
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    if (String(booking.user) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: "Booking already cancelled" });
+    }
+
+    booking.status = 'cancelled';
+    await booking.save();
+
+    return res.status(200).json({ success: true, message: "Booking cancelled" });
+  } catch (error) {
+    console.error("Cancel booking error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Function to generate a UID
 function generateUID() {
   // Generate a random alphanumeric string
