@@ -140,6 +140,7 @@ const Profile = () => {
             <thead>
               <tr>
                 <th>Ticket ID</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -148,12 +149,62 @@ const Profile = () => {
                 <tr key={ticket._id}>
                   <td className="text-center">{ticket.uid}</td>
                   <td className="text-center">
+                    {ticket.bookings && ticket.bookings.length > 0
+                      ? ticket.bookings[0].status
+                      : "active"}
+                  </td>
+                  <td className="text-center flex gap-2 justify-center">
                     <Link
                       to={`/ticket/${ticket.uid}`}
                       className="text-blue-500 underline"
                     >
                       Go to Ticket
                     </Link>
+                    {ticket.bookings &&
+                      ticket.bookings.length > 0 &&
+                      ticket.bookings[0].status === "active" && (
+                        <button
+                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
+                          onClick={async () => {
+                            try {
+                              const token = localStorage.getItem("token");
+                              const res = await axios.patch(
+                                `${BACKENDURL}/api/v1/booking/cancel/${ticket.bookings[0]._id}`,
+                                {},
+                                {
+                                  headers: {
+                                    Authorization: `Bearer ${token}`,
+                                  },
+                                }
+                              );
+                              toast.success("Your booking has been cancelled.");
+                              // Update UI
+                              setTickets((prev) =>
+                                prev.map((t) =>
+                                  t._id === ticket._id
+                                    ? {
+                                        ...t,
+                                        bookings: [
+                                          {
+                                            ...t.bookings[0],
+                                            status: "cancelled",
+                                          },
+                                        ],
+                                      }
+                                    : t
+                                )
+                              );
+                            } catch (err) {
+                              toast.error(
+                                err.response?.data?.message ||
+                                  "Failed to cancel booking"
+                              );
+                            }
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
                   </td>
                 </tr>
               ))}
