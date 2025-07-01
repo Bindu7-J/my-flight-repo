@@ -15,6 +15,7 @@ const Profile = () => {
   const [tickets, setTickets] = useState([]);
   const [userName, setUserName] = useState("");
   const [profilePic, setProfilePic] = useState(null);
+  const [cancelling, setCancelling] = useState({}); // bookingId: boolean
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,6 +82,32 @@ const Profile = () => {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+    setCancelling((prev) => ({ ...prev, [bookingId]: true }));
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.patch(
+        `${BACKENDURL}/api/v1/bookings/${bookingId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Your booking has been cancelled.");
+      // Update UI: refetch or update tickets in state
+      setTickets((prev) =>
+        prev.map((t) =>
+          t._id === bookingId ? { ...t, status: "cancelled" } : t
+        )
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Cancellation failed. Try again."
+      );
+    } finally {
+      setCancelling((prev) => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
   return (
     <div className="px-[30px] md:px-[30px]">
       <div className="max-w-[800px] mx-auto">
@@ -140,6 +167,7 @@ const Profile = () => {
             <thead>
               <tr>
                 <th>Ticket ID</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -148,12 +176,28 @@ const Profile = () => {
                 <tr key={ticket._id}>
                   <td className="text-center">{ticket.uid}</td>
                   <td className="text-center">
+                    {ticket.status === "cancelled" ? (
+                      <span className="text-red-600">Cancelled</span>
+                    ) : (
+                      <span className="text-green-600">Active</span>
+                    )}
+                  </td>
+                  <td className="text-center">
                     <Link
                       to={`/ticket/${ticket.uid}`}
-                      className="text-blue-500 underline"
+                      className="text-blue-500 underline mr-2"
                     >
                       Go to Ticket
                     </Link>
+                    {ticket.status !== "cancelled" && (
+                      <button
+                        className="bg-red-500 text-white px-3 py-1 rounded"
+                        disabled={cancelling[ticket._id]}
+                        onClick={() => handleCancelBooking(ticket._id)}
+                      >
+                        {cancelling[ticket._id] ? "Cancelling..." : "Cancel"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

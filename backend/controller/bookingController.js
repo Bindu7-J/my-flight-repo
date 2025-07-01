@@ -100,6 +100,36 @@ export const getCheckoutSession = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// DMA-51: Cancel Booking Controller
+export const cancelBooking = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const userId = req.userId;
+
+    // Find booking
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+    if (String(booking.user) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ success: false, message: "Booking already cancelled" });
+    }
+    // Optionally: check eligibility (e.g., not past flight date)
+
+    booking.status = "cancelled";
+    await booking.save();
+
+    return res.status(200).json({ success: true, message: "Booking cancelled", booking });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Function to generate a UID
 function generateUID() {
   // Generate a random alphanumeric string
