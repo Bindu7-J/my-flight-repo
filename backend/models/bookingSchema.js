@@ -48,6 +48,12 @@ const bookingSchema = new Schema({
     type: String,
     required: true,
   },
+  status: {
+    type: String,
+    enum: ['active', 'cancelled'],
+    default: 'active',
+    required: true,
+  },
 });
 
 export default mongoose.model("Booking", bookingSchema);
