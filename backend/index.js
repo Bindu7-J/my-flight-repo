@@ -83,4 +83,4 @@ app.use("/api/v1/tickets", ticketRoute);
 app.listen(5000, () => {
   connectDB();
   console.log("Server is running on port 5000");
-});
+})
