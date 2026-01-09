@@ -1,0 +1,1 @@
+<updated content of booking.js>

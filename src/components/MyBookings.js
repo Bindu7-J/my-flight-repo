@@ -1,0 +1,1 @@
+<updated content of MyBookings.js>
